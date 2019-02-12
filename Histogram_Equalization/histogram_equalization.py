@@ -5,15 +5,15 @@ import cv2 as cv
 import numpy as np
 from matplotlib import pyplot as plt
 
-path = "gray1.jpg"
-img = cv.imread(path)
+path = "images/gray1.jpg"
+img = cv.imread(path, 0)
 # width - img.shape[1]
 # height - img.shape[0]
 height, width = img.shape[:2]
 
 # Resize image if too big
 if height > 800 or width > 800:
-        res = cv.resize(img, (int(width/3), int(height/3)), interpolation = cv.INTER_CUBIC)
+        res = cv.resize(img, (int(width/4), int(height/4)), interpolation = cv.INTER_CUBIC)
 else:
         res = img
 
@@ -26,6 +26,22 @@ def adjust_gamma(image, gamma = 1.0):
 
 	# Apply gamma correction using the lookup table
 	return cv.LUT(image, table)
+
+# Perform gamma transformation on given image
+def apply_diff_gammas(img):
+	images = []
+	images.append(img)
+
+	gamma = 0.5
+	for i in range(2):
+		images.append(adjust_gamma(img, gamma))
+		gamma += 1
+
+	# Displays original, g = 0.5, g = 1.5
+	#row = np.hstack((images[0], images[1], images[2]))
+	#cv.imshow("Gamma Transformations - g = {1, 0.5, 1.5}", row)
+
+	return images
 
 # Histogram Equalization for grayscale image(s)
 def histEqual(img, len = 1):
@@ -42,11 +58,11 @@ def histEqual(img, len = 1):
 	# Apply CDF to image
 	equ = cdf[img]
 
-	# Plot original and equalized image
-	comp = np.hstack((img, equ))
-	cv.imshow("Comparison", comp)
-
 	if len is 1:
+		# Plot original and equalized image
+		comp = np.hstack((img, equ))
+		cv.imshow("Comparison", comp)
+
 		# Plot histograms of original and equalized
 		plt.hist(img.flatten(), 256, [0, 256], color = 'r')
 		plt.hist(equ.flatten(), 256, [0, 256], color = 'b')
@@ -55,36 +71,48 @@ def histEqual(img, len = 1):
 	else:
 		return equ
 
-def apply_diff_gammas(img):
-	images = []
-	images.append(img)
+# Histogram Equalization of a single grayscale image
+histEqual(res)
 
-	gamma = 0.5
-	for i in range(3):
-		images.append(adjust_gamma(img, gamma))
-		gamma += 0.5
+# Histogram Equalization of a single grayscale image with multiple gammas
+# -------------------- Start Here --------------------
+# images = apply_diff_gammas(res)
+# equ = []
 
-	r1 = np.hstack((images[0], images[1]))
-	r2 = np.hstack((images[2], images[3]))
-	v = np.vstack((r1, r2))
-	cv.imshow("Gamma Transformations", v)
+# for i in range(len(images)):
+# 	equ.append(histEqual(images[i], len(images)))
 
-	return images
+# # Original and equalized images
+# for i in range(len(images)):
+# 	r = np.hstack((images[i], equ[i]))
+# 	if i == 0:
+# 		cv.imshow("g = 1", r)
+# 	elif i == 1:
+# 		cv.imshow("g = 0.5", r)
+# 	else:
+# 		cv.imshow("g = 1.5", r)
 
-# cv.imshow("Original Image", res)
-# adj1 = adjust_gamma(res, gamma = 0.5)
-# adj2 = adjust_gamma(res, gamma = 0.1)
-# adj3 = adjust_gamma(res, gamma = 1.5)
-# cv.imshow("g = 0.5", adj1)
-# cv.imshow("g = 0.1", adj2)
-# cv.imshow("g = 1.5", adj3)
+# # Histogram Plots
+# plt.figure(1),
+# plt.hist(images[0].flatten(), 256, [0, 256], color = 'r')
+# plt.hist(equ[0].flatten(), 256, [0, 256], color = 'b')
+# plt.legend(("Original", "Equalized"), loc = 'best')
+# plt.title("g = 1")
 
-# r1 = np.hstack((res, adj1))
-# r2 = np.hstack((adj2, adj3))
-# allPics = np.vstack((r1, r2))
-# cv.imshow("All Pics", allPics)
+# plt.figure(2),
+# plt.hist(images[1].flatten(), 256, [0, 256], color = 'r')
+# plt.hist(equ[1].flatten(), 256, [0, 256], color = 'b')
+# plt.legend(("Original", "Equalized"), loc = 'best')
+# plt.title("g = 0.5")
 
-# histEqual(res)
+# plt.figure(3)
+# plt.hist(images[2].flatten(), 256, [0, 256], color = 'r')
+# plt.hist(equ[2].flatten(), 256, [0, 256], color = 'b')
+# plt.legend(("Original", "Equalized"), loc = 'best')
+# plt.title("g = 1.5")
+
+# plt.show()
+# -------------------- End Here --------------------
 
 cv.waitKey(0)
 cv.destroyAllWindows()
