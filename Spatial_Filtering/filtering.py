@@ -5,11 +5,33 @@ import numpy as np
 import cv2 as cv
 
 def flipKernel(kernel):
-	res = np.flip(kernel, 1)
-	res = np.flip(res, 0)
+	'''
+	Flips the 2D kernel
+
+	Arguments:
+	kernel -- kernel to be flipped
+
+	Returns:
+	res -- flipped kernel
+	'''
+
+	res = np.flip(kernel, 1)	# Flip across vertical axis
+	res = np.flip(res, 0)		# Flip across horizontal axis
+
 	return res
 
 def mnfilter(image, kernel):
+	'''
+	Filters the input image with the input kernel
+
+	Arguments:
+	image -- input image
+	kernel -- m x n matrix (preferably m = n = odd number)
+
+	Returns:
+	res -- filtered image
+	'''
+
 	# Dimensions of the kernel
 	m = kernel.shape[0]		# rows
 	n = kernel.shape[1]		# cols
@@ -32,15 +54,12 @@ def mnfilter(image, kernel):
 	# Resulting filtered image of the same size as the input
 	res = np.zeros((x, y), dtype = 'int')
 
+	# Filter the image
 	for i in range(1, x):
 		for j in range(1, y):
-			res[i][j] = sum((w[a - s][b - t] * padImg[i - s + a][j - t + b]) for s in range(a, -a - 1, -1) for t in range(b, -b - 1, -1))
-			# print("[%d][%d]" % (i, j))
-			# for s in range(a, -a - 1, -1):
-			# 	for t in range(b, -b - 1, -1):
-			# 		res[i][j] += w[a - s][b - t] * padImg[i - s + a][j - t + b]
-			# 		print("w[%d][%d] * padImg[%d][%d] = %d * %d = %d" % (a - s, b - t, i - s, j - t, w[a - s][b - t], padImg[i - s + a][j - t + b], res[i][j]))
-			#print("[%d][%d] = %d" % (i, j, res[i][j]))
+			res[i][j] = sum((w[a - s][b - t] * padImg[i - s + a][j - t + b]) 
+				for s in range(a, -a - 1, -1) for t in range(b, -b - 1, -1))
+
 	return res
 
 def genGaussianKernel():
@@ -74,10 +93,10 @@ def genKernel(m):
 path = "images/img1.jpg"
 img = cv.imread(path)
 
-# Kernel used for mnfilter
+# Kernel used for mnfilter (assumes an m x m matrix where m is odd)
 kernel = np.array([[1, 2, 3],
-				   [4, 5, 6],
-				   [7, 8, 9]], dtype = 'int')
+	[4, 5, 6],
+	[7, 8, 9]], dtype = 'int')
 
 #print(img)
 #print(kernel)
