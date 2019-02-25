@@ -241,9 +241,9 @@ def getInput():
 		lk = int(input("Invalid entry. Select 0 for isotropic 45 or 1 for isotopic 90: "))
 
 	# Contstant value used in sharpening
-	c = int(input("Pick a positive value for c [g = f + c(LoG)]: "))
-	while c < 1:
-		c = int(input("Invalid entry. Pick a positive c value: "))
+	c = float(input("Pick a positive value for c [g = f + c(LoG)]: "))
+	while c <= 0:
+		c = float(input("Invalid entry. Pick a positive c value: "))
 
 	# Load image
 	path = "images/img{}.jpg".format(imgNum)
