@@ -38,12 +38,12 @@ def scaleValues(img):
 	# Calculate the slope
 	slope = 255 / (imgMax - imgMin)
 
-	scaled = np.zeros((img.shape[0], img.shape[1]), dtype = 'int')
+	scaled = np.zeros((img.shape[0], img.shape[1]))
 
 	# Scale the image
 	for i in range(img.shape[0]):
 		for j in range(img.shape[1]):
-			scaled[i][j] = ((slope*img[i][j]) - (slope*imgMin)).astype('int')
+			scaled[i][j] = ((slope*img[i][j]) - (slope*imgMin))
 
 	return scaled
 
@@ -65,8 +65,8 @@ def mnfilter(image, kernel, scale = 1):
 	n = kernel.shape[1]		# cols
 
 	# Dimensions of the image
-	x = image.shape[0]
-	y = image.shape[1]
+	x = image.shape[1]
+	y = image.shape[0]
 
 	# Calculate a and b
 	a = int((m - 1) / 2)
@@ -74,25 +74,27 @@ def mnfilter(image, kernel, scale = 1):
 
 	# Flip kernel
 	w = flipKernel(kernel)
-	# print(w)
 
 	# Pad image using replicate padding
 	padImg = np.pad(image, (a, b), 'edge')
 
 	# Resulting filtered image of the same size as the input
-	res = np.zeros((x, y))
+	res = np.zeros((y, x))
 
 	# Filter the image
-	for i in range(1, x):
-		for j in range(1, y):
-			res[i][j] = sum((w[a - s][b - t] * padImg[i - s + a][j - t + b]) for s in range(a, -a - 1, -1) for t in range(b, -b - 1, -1))
+	for i in range(y):
+		for j in range(x):
+			res[i][j] = sum((w[a - s][b - t] * padImg[i - s + a][j - t + b]) \
+				for s in range(a, -a - 1, -1) for t in range(b, -b - 1, -1))
 
 	# Scale if desired and needed
-	if scale:
+	if scale == 1:
 		if res.max() > 255 or res.min() < 0:
 			res = scaleValues(res)
 
-	return res.astype('uint8')
+	res = res.astype('uint8')
+
+	return res
 
 def genGaussianKernel(m, sigma = 1, k = 1):
 	'''
@@ -122,15 +124,141 @@ def genGaussianKernel(m, sigma = 1, k = 1):
 
 	return kernel
 
-def LoG():
-	# a) Gaussian of the image, parameters - [sigma, w]
-	# b) Laplacian of Gaussian
+def gaussian(img, m, sigma = 1):
+	'''
+	Applies a gussian filter to the input image
+
+	Arguments:
+	img -- input image
+	m -- kernel size
+	sigma -- sigma value (default = 1)
+
+	Returns:
+	g -- Gaussian filtered image
+	'''
+
+	gk = genGaussianKernel(m, sigma)	# Generate the Gaussian kernel
+	g = mnfilter(img, gk)
+
+	return g
+
+def laplacian(img, k = 0):
+	'''
+	Applies a laplacin filter to the input image
+
+	Arguments:
+	img -- input image
+	k -- Laplacian filter choice
+
+	Returns:
+	l -- Laplacian filtered image
+	'''
+
+	if k == 0:
+		lk = np.array([[1, 1, 1], [1, -8, 1], [1, 1, 1]])		# isotropic 45
+	else:
+		lk = np.array([[0, -1, 0], [-1, 4, -1], [0, -1, 0]])	# isotropic 90
+
+	l = mnfilter(img, lk, 0)
+
+	return l
+
+def LoG(img, m, sigma = 1, k = 0):
+	'''
+	Takes the Laplacian of the Gaussian of an image.
+
+	Arguments:
+	img -- input image
+	m -- size of Gaussian kernel (odd number)
+	sigma -- sigma value (default = 1)
+	k -- 0: isotropic 45 (default), 1: isotropic 90
+
+	Returns:
+	log -- Laplacian of Gaussian
+	'''
+
+	# Gaussian of the image
+	g = gaussian(img, m, sigma)
+	cv.imshow("Gaussian", g)
+
+	# Laplacia of Gaussian
+	log = laplacian(g)
+	cv.imshow("Laplacian of Gaussian", log)
+
+	return log
+
+def sharpen(img, m, sigma = 1, c = 1, k = 0):
+	'''
+	Sharpens a given image.
+
+	Arguments:
+	img -- input image
+	m -- size of Gaussian kernel (odd number)
+	sigma -- sigma value (default = 1)
+	c -- constant value (default = 1)
+	k -- Laplacian kernel (refer to laplacian function)
+
+	Returns:
+	sImg -- sharpened image
+	'''
+	
+	log = LoG(img, m, sigma, k)
+
+	sImg = img + (c * log)
+
+	if sImg.max() > 255 or sImg.min() < 0:
+		sImg = scaleValues(sImg)
+
+	return sImg.astype("uint8")
+
+def getInput():
+	'''
+	Obtains required parameters from user and outputs the original, Gaussin filtered, LoG filtered, and sharpened image.
+	
+	Arguments:
 	None
 
-def sharpen():
+	Returns:
 	None
+	'''
 
-# For testing purposes
+	# Selects 1 of 5 images
+	imgNum = int(input("Pick a number from 1 to 5 to choose an image: "))
+	while imgNum < 1 or imgNum > 5:
+		imgNum = int(input("Invalid entry. Pick a number from 1 to 5 to choose an image: "))
+
+	# Gaussian kernel size
+	ksize = int(input("Pick a odd kernel size (m x m) for the Gaussian filter; m: "))
+	while (ksize % 2 - 1) != 0 and ksize > 0:
+		ksize = int(input("Invalid entry. Please pick an odd number for the kernel size: "))
+
+	# Sigma value used in generating the Gaussian kernel
+	sigma = float(input("Pick a sigma value: "))
+
+	# Use of an isotropic 45 or isotropic 90 3x3 Laplacian kernel
+	lk = int(input("Select a Laplacian kernel (0: isotropic 45, 1: isotropic 90): "))
+	while lk < 0 or lk > 1:
+		lk = int(input("Invalid entry. Select 0 for isotropic 45 or 1 for isotopic 90: "))
+
+	# Contstant value used in sharpening
+	c = int(input("Pick a positive value for c [g = f + c(LoG)]: "))
+	while c < 1:
+		c = int(input("Invalid entry. Pick a positive c value: "))
+
+	# Load image
+	path = "images/img{}.jpg".format(imgNum)
+	img = cv.imread(path)
+	img = cv.cvtColor(img, cv.COLOR_BGR2GRAY)
+
+	# Original image
+	cv.imshow("Original", img)
+
+	# Sharpened image
+	sharpened = sharpen(img, ksize, sigma, c, lk)
+	cv.imshow("Sharpened", sharpened)
+
+
+# ----------------- For testing purposes --------------------
 def genImpulseMatrix(m):
 	mat = np.zeros((m, m), dtype = 'int')
 	mat[int(m/2)][int(m/2)] = 1
@@ -146,31 +274,30 @@ def genKernel(m):
 			x += 1
 
 	return mat
+# -----------------------------------------------------------
 
 # Input image
-path = "images/img2.jpg"
-img = cv.imread(path, 0)
-
+# path = "images/img2.jpg"
+# img = cv.imread(path)
+# img = cv.cvtColor(img, cv.COLOR_BGR2GRAY)
+# img = genImpulseMatrix(5)
 # # Kernel used for mnfilter (assumes an m x m matrix where m is odd)
-# kernel = np.array([[1, 2, 3],
-# 				[4, 5, 6],
-# 				[7, 8, 9]], dtype = 'int')
+# kernel = genKernel(3)
 
-#print(img)
-#print(kernel)
+# #print(img)
+# #print(kernel)
 # res = mnfilter(img, kernel)
 
 # print("img"); print(img)
 # print("res"); print(res)
 
+# res = sharpen(img, 31, 7, 2)
+
 # # Show images
 # cv.imshow('Original', img)
-# cv.imshow('Filtered', res)
+# cv.imshow('Sharpened', res)
 
-fil = genGaussianKernel(3)
-print(fil)	
-print(np.sum(fil))
-
+getInput()
 
 cv.waitKey(0)
 cv.destroyAllWindows()
