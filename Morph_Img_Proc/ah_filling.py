@@ -97,7 +97,7 @@ def ahFill(img, size):
 	size	-- Structuring Element size
 
 	Returns:
-
+	result	-- Resulting image
 	'''
 
 	# Threshold the image to ensure the image is binary
